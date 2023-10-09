@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "846615240991",
+    "project_id": "openvibes-65179",
+    "storage_bucket": "openvibes-65179.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:846615240991:android:f4cec2c3f6385ba48dd02a",
+        "android_client_info": {
+          "package_name": "com.venom82.openvibes2"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBXl4s4LpH9GHdv3fzP5AOrtJrLk_ZwydE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
