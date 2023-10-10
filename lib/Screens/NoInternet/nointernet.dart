@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:openvibes2/Helpers/route_handler.dart';
-import 'package:openvibes2/Screens/Common/routes.dart';
-import 'package:openvibes2/Screens/Player/audioplayer.dart';
+import 'package:openvibes2/Screens/Library/downloads.dart';
 import 'package:openvibes2/theme/app_theme.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
@@ -22,17 +20,7 @@ class NoInternet extends StatelessWidget {
       darkTheme: AppTheme.darkTheme(
         context: context,
       ),
-      routes: namedRoutesForNoInternet,
-      navigatorKey: navigatorKey,
-      onGenerateRoute: (RouteSettings settings) {
-        if (settings.name == '/player') {
-          return PageRouteBuilder(
-            opaque: false,
-            pageBuilder: (_, __, ___) => const PlayScreen(),
-          );
-        }
-        return HandleRoute.handleRoute(settings.name);
-      },
+      home:const Downloads(),
     );
   }
 }

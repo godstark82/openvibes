@@ -1,11 +1,12 @@
-// ignore_for_file: prefer_const_constructors, require_trailing_commas, avoid_void_async, prefer_final_locals, no_leading_underscores_for_local_identifiers, avoid_print
+import 'dart:async';
 
-import 'dart:io';
-
-import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
-import 'package:path_provider/path_provider.dart';
-import 'package:permission_handler/permission_handler.dart';
+import 'package:logging/logging.dart';
+import 'package:openvibes2/APIs/api.dart';
+import 'package:openvibes2/CustomWidgets/download_button.dart';
+import 'package:openvibes2/CustomWidgets/image_card.dart';
+import 'package:openvibes2/CustomWidgets/snackbar.dart';
+import 'package:openvibes2/Screens/Library/show_songs.dart';
 
 class NoEntry extends StatefulWidget {
   const NoEntry({super.key});
@@ -15,186 +16,276 @@ class NoEntry extends StatefulWidget {
 }
 
 class _NoEntryState extends State<NoEntry> {
-  List<String> downloadLinks = [
-    'https://drive.google.com/uc?export=download&id=1vgRZB0zxVkjTJNdRBxA-MBS2yxsSDy3Q',
-    'https://drive.google.com/uc?export=download&id=19xUSozi4xiPArW7bJDOysxcXjJwI7W3q',
-    'https://drive.google.com/uc?export=download&id=1Uz5yK4FaBurXAN3fbhNm30ZWHXoNIyhC',
-  ];
-  List<Map> songInfo = [
-    {
-      'name': 'happy-day-background-vlog-music-NCS',
-      'type': 'mp3',
-      'Copyright': 'No Copyright'
-    },
-    {
-      'name': 'summer-party',
-      'type': 'mp3',
-      'Copyright': 'No Copyright',
-    },
-    {
-      'name': 'tvari-tokyo-cafe',
-      'type': 'mp3',
-      'Copyright': 'No Copyright',
-    },
-  ];
-  late String _localPath;
-  late bool _permissionReady;
-  final TargetPlatform platform = TargetPlatform.android;
+  List _songs = [];
+  Future<void> fetchData() async {
+    // final local = await SaavnAPI().fetchAlbumSongs('22063173');
+    // final localSong = local['songs'] as List;
+    // ignore: avoid_print
+    await SaavnAPI()
+        .fetchAlbums(
+      searchQuery: 'No Copyright Songs',
+      type: 'album',
+      // page: page,
+    )
+        .then((value) {
+      final temp = _songs ?? [];
+      temp.addAll(value);
+      setState(() {
+        _songs = temp;
+      });
+    });
 
-  Future<bool> _checkPermission() async {
-    if (platform == TargetPlatform.android) {
-      final status = await Permission.storage.status;
-      if (status != PermissionStatus.granted) {
-        final result = await Permission.storage.request();
-        if (result == PermissionStatus.granted) {
-          return true;
-        }
-      } else {
-        return true;
-      }
-    } else {
-      return true;
-    }
-    return false;
-  }
+    debugPrint('$_songs');
 
-  Future<void> _prepareSaveDir() async {
-    _localPath = (await _findLocalPath())!;
-
-    print(_localPath);
-    final savedDir = Directory(_localPath);
-    bool hasExisted = await savedDir.exists();
-    if (!hasExisted) {
-      savedDir.create();
-    }
-  }
-
-  Future<String?> _findLocalPath() async {
-    if (platform == TargetPlatform.android) {
-      return '/sdcard/download/';
-    } else {
-      var directory = await getApplicationDocumentsDirectory();
-      return '${directory.path}${Platform.pathSeparator}Download';
-    }
+    // print(_songs);
   }
 
   @override
   void initState() {
     // TODO: implement initState
     super.initState();
+    fetchData();
   }
 
   @override
   Widget build(BuildContext context) {
-    var height = MediaQuery.of(context).size.height;
-    var width = MediaQuery.of(context).size.width;
     return MaterialApp(
-        debugShowCheckedModeBanner: false,
-        home: Scaffold(
+      home: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(colors: [
+            Color.fromARGB(221, 87, 87, 87),
+            Color.fromARGB(255, 81, 104, 145),
+            Color.fromARGB(255, 150, 92, 92),
+          ], begin: Alignment.topLeft, end: Alignment.bottomRight),
+        ),
+        child: Scaffold(
           backgroundColor: Colors.transparent,
-            appBar: AppBar(
-              backgroundColor: Color.fromARGB(255, 0, 112, 84),
-              elevation: 0,
-              title: const Text(
-                'OpenVibes',
-                style: TextStyle(color: Colors.white),
-              ),
-              centerTitle: true,
+          appBar: AppBar(
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            title: const Text(
+              'OpenVibes',
+              style: TextStyle(color: Colors.white, fontSize: 30),
             ),
-            body: Container(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(colors: [
-                  Colors.blueAccent,
-                  Colors.red
-                ])
-              ),
-              child: Column(
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.all(20.0),
-                    child: Center(
-                      child: Text(
-                        'No Copyright Songs Downloader for Background Music',
-                        style:
-                            TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: Colors.white),
+            centerTitle: true,
+          ),
+          body: _songs.isEmpty
+              ? const Center(
+                  child: CircularProgressIndicator(),
+                )
+              : SingleChildScrollView(
+                  child: Column(
+                    children: [
+                      const Padding(
+                        padding: EdgeInsets.all(16.0),
+                        child: Text('No Copyright Songs',
+                            style: TextStyle(color: Colors.white, fontSize: 20)),
                       ),
-                    ),
+                      NESongsListPage(listItem: _songs[0] as Map),
+                      NESongsListPage(listItem: _songs[1] as Map),
+                      NESongsListPage(listItem: _songs[3] as Map),
+                    ],
                   ),
-                  SizedBox(height: 50),
-                  ListView.builder(
-                      shrinkWrap: true,
-                      itemCount: 3,
-                      itemBuilder: (context, index) {
-                        return Card(
-                            child: ListTile(
-                                leading: Icon(Icons.music_note_outlined),
-                                title: Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Text('${songInfo[index]['name']}.mp3'),
-                                    IconButton(
-                                        onPressed: () {
-                                          showDialog(
-                                              context: context,
-                                              builder: (context) {
-                                                return AlertDialog(
-                                                    title: Text('Song Info'),
-                                                    content: Center(
-                                                      child: SizedBox(
-                                                        height: height * 0.25,
-                                                        width: width * 0.9,
-                                                        child: Column(
-                                                          children: [
-                                                            Text(
-                                                                'Song Name: ${songInfo[index]['name']}'),
-                                                            Text(
-                                                                'Song Name: ${songInfo[index]['type']}'),
-                                                            Text(
-                                                                'Song Name: ${songInfo[index]['Copyright']}'),
-                                                          ],
-                                                        ),
-                                                      ),
-                                                    ));
-                                              });
-                                        },
-                                        icon: Icon(Icons.info)),
-                                  ],
-                                ),
-                                trailing: IconButton.filled(
-                                  onPressed: () async {
-                                    _permissionReady = await _checkPermission();
-                                    if (_permissionReady) {
-                                      await _prepareSaveDir();
-            
-                                      try {
-                                        await Dio().download(
-                                            'https://drive.google.com/uc?export=download&id=1vgRZB0zxVkjTJNdRBxA-MBS2yxsSDy3Q',
-                                            '$_localPath/music1.mp3');
-            
-                                        ScaffoldMessenger.of(context)
-                                            .showSnackBar(SnackBar(
-                                          content: Text('Downloading'),
-                                          duration: Duration(seconds: 2),
-                                        ));
-                                        await Future.delayed(
-                                            Duration(seconds: 3));
-                                        ScaffoldMessenger.of(context)
-                                            .showSnackBar(SnackBar(
-                                                content: Text('Download Done')));
-                                      } catch (e) {
-                                        ScaffoldMessenger.of(context)
-                                            .showSnackBar(SnackBar(
-                                                content: Text(
-                                                    'Download Failed \n $e')));
-                                      }
-                                    }
-                                  },
-                                  icon: Icon(Icons.download),
-                                )));
-                      }),
-                ],
+                ),
+        ),
+      ),
+    );
+  }
+}
+
+class NESongsListPage extends StatefulWidget {
+  final Map listItem;
+
+  const NESongsListPage({
+    super.key,
+    required this.listItem,
+  });
+
+  @override
+  _NESongsListPageState createState() => _NESongsListPageState();
+}
+
+class _NESongsListPageState extends State<NESongsListPage> {
+  int page = 1;
+  bool loading = false;
+  List songList = [];
+  bool fetched = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchSongs();
+  }
+
+  void _fetchSongs() {
+    loading = true;
+    try {
+      switch (widget.listItem['type'].toString()) {
+        case 'songs':
+          SaavnAPI()
+              .fetchSongSearchResults(
+            searchQuery: widget.listItem['id'].toString(),
+            page: page,
+          )
+              .then((value) {
+            setState(() {
+              songList.addAll(value['songs'] as List);
+              fetched = true;
+              loading = false;
+            });
+            if (value['error'].toString() != '') {
+              ShowSnackBar().showSnackBar(
+                context,
+                'Error: ${value["error"]}',
+                duration: const Duration(seconds: 3),
+              );
+            }
+          });
+          break;
+        case 'album':
+          SaavnAPI()
+              .fetchAlbumSongs(widget.listItem['id'].toString())
+              .then((value) {
+            setState(() {
+              songList = value['songs'] as List;
+              fetched = true;
+              loading = false;
+            });
+            if (value['error'].toString() != '') {
+              ShowSnackBar().showSnackBar(
+                context,
+                'Error: ${value["error"]}',
+                duration: const Duration(seconds: 3),
+              );
+            }
+          });
+          break;
+        case 'playlist':
+          SaavnAPI()
+              .fetchPlaylistSongs(widget.listItem['id'].toString())
+              .then((value) {
+            setState(() {
+              songList = value['songs'] as List;
+              fetched = true;
+              loading = false;
+            });
+            if (value['error'] != null && value['error'].toString() != '') {
+              ShowSnackBar().showSnackBar(
+                context,
+                'Error: ${value["error"]}',
+                duration: const Duration(seconds: 3),
+              );
+            }
+          });
+          break;
+        case 'mix':
+          SaavnAPI()
+              .getSongFromToken(
+            widget.listItem['perma_url'].toString().split('/').last,
+            'mix',
+          )
+              .then((value) {
+            setState(() {
+              songList = value['songs'] as List;
+              fetched = true;
+              loading = false;
+            });
+
+            if (value['error'] != null && value['error'].toString() != '') {
+              ShowSnackBar().showSnackBar(
+                context,
+                'Error: ${value["error"]}',
+                duration: const Duration(seconds: 3),
+              );
+            }
+          });
+          break;
+        case 'show':
+          SaavnAPI()
+              .getSongFromToken(
+            widget.listItem['perma_url'].toString().split('/').last,
+            'show',
+          )
+              .then((value) {
+            setState(() {
+              songList = value['songs'] as List;
+              fetched = true;
+              loading = false;
+            });
+
+            if (value['error'] != null && value['error'].toString() != '') {
+              ShowSnackBar().showSnackBar(
+                context,
+                'Error: ${value["error"]}',
+                duration: const Duration(seconds: 3),
+              );
+            }
+          });
+          break;
+        default:
+          setState(() {
+            fetched = true;
+            loading = false;
+          });
+          ShowSnackBar().showSnackBar(
+            context,
+            'Error: Unsupported Type ${widget.listItem['type']}',
+            duration: const Duration(seconds: 3),
+          );
+          break;
+      }
+    } catch (e) {
+      setState(() {
+        fetched = true;
+        loading = false;
+      });
+      Logger.root.severe(
+        'Error in song_list with type ${widget.listItem["type"]}: $e',
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView.builder(
+        shrinkWrap: true,
+        itemCount: songList.length,
+        itemBuilder: (context, index) {
+          return Card(
+            color: Colors.transparent,
+            child: ListTile(
+              title: Text(
+                '${songList[index]['title']}',
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                    fontWeight: FontWeight.w500, color: Colors.white),
               ),
-            )));
+              subtitle: Text(
+                '${songList[index]['subtitle']}',
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(color: Colors.grey),
+              ),
+              trailing: DownloadButton(
+                data: songList[index] as Map,
+                icon: 'Download',
+              ),
+              leading: imageCard(
+                elevation: 8,
+                placeholderImage: const AssetImage(
+                  'assets/album.png',
+                ),
+                imageUrl: songList[index]['image'].toString(),
+              ),
+              onTap: () {
+                Navigator.push(context, MaterialPageRoute(builder: (context) {
+                  return SongsList(
+                    data: songList,
+                    offline: false,
+                  );
+                }));
+              },
+            ),
+          );
+        });
   }
 }
